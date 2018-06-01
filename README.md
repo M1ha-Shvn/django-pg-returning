@@ -1,4 +1,4 @@
-# django-pg-update-returning
+# django-pg-returning
 A small library implementing PostgreSQL ability to return rows in DML statements for Django.  
 [Link to PostgreSQL docs](https://www.postgresql.org/docs/10/static/sql-update.html)
 
