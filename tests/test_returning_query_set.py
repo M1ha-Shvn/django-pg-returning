@@ -1,4 +1,4 @@
-from django.db.models import F
+from django.db.models import F, ManyToOneRel
 from django.test import TestCase
 
 from tests.models import TestModel

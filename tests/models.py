@@ -12,3 +12,10 @@ class TestModel(models.Model):
 
     objects = UpdateReturningManager()
 
+
+# This model is not used in testing, but it creates reversed relations
+# This is a simulation of issue-2
+class TestRelModel(models.Model):
+    fk = models.ForeignKey(TestModel, on_delete=models.CASCADE, related_name='fk')
+    m2m = models.ManyToManyField(TestModel, related_name='m2m')
+    o2m = models.OneToOneField(TestModel, on_delete=models.CASCADE, related_name='o2m')

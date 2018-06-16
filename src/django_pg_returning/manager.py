@@ -19,17 +19,20 @@ class UpdateReturningMixin(object):
         Gets a dictionary of fields for each model, selected by .only() and .defer() methods
         :return: A dictionary with model as key, fields list as value
         """
-        result = {}
-        self.query.deferred_to_data(result, self._get_loaded_field_cb)
+        fields = {}
+        self.query.deferred_to_data(fields, self._get_loaded_field_cb)
 
         # No .only() or .defer() operations
-        if not result:
+        if not fields:
             if django.VERSION < (1, 8):
-                result = {self.model: self.model._meta.local_fields}
+                fields = self.model._meta.local_fields
             else:
-                result = {self.model: self.model._meta.get_fields()}
+                fields = self.model._meta.get_fields()
 
-        return result
+            # Remove all related fields - they are not from this model
+            fields = {self.model: [f for f in fields if not getattr(f, 'is_relation', False)]}
+
+        return fields
 
     def _get_returning_qs(self, query_type, **updates):
         # type: (Type[sql.Query], **Dict[str, Any]) -> ReturningQuerySet
