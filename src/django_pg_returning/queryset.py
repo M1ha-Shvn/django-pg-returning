@@ -1,5 +1,7 @@
 from collections import namedtuple
+from itertools import chain
 
+from copy import deepcopy
 from django.db.models.query import RawQuerySet
 from django.db import router
 from typing import Any, Union, List, Dict, Tuple
@@ -15,14 +17,15 @@ class ReturningQuerySet(RawQuerySet):
     4) Returns Database to write, not to read as .db
     """
     def __init__(self, *args, **kwargs):
-        # A list of fileds, fetched by returning statement, in order to form values_list
-        self._fields = kwargs.pop('fields')
+        # A list of fields, fetched by returning statement, in order to form values_list
+        self._fields = kwargs.pop('fields', [])
 
         super(ReturningQuerySet, self).__init__(*args, **kwargs)
 
         # HACK Using methods create a new RawQuerySet, based on current data without calling it.
         # I use it here in order to iterate with super().__iter__ method.
-        self._result_cache = list(super(ReturningQuerySet, self).using(self.db))
+        # If raw_query is empty, I think it's an empty QuerySet creation
+        self._result_cache = list(super(ReturningQuerySet, self).using(self.db)) if self.raw_query else []
 
     def __len__(self):
         return len(self._result_cache)
@@ -33,9 +36,21 @@ class ReturningQuerySet(RawQuerySet):
     def __getitem__(self, k):
         return self._result_cache[k]
 
+    def __add__(self, other):
+        if self.fields != other.fields:
+            raise ValueError("Querysets with different fields can't be concatenated")
+
+        res = deepcopy(self)
+        res._result_cache = list(chain(res, other))
+        return res
+
     @property
     def db(self):  # type: () -> str
         return self._db or router.db_for_write(self.model, **self._hints)
+
+    @property
+    def fields(self):
+        return self._fields
 
     def using(self, alias):
         """
