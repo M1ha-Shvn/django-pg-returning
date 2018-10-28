@@ -1,7 +1,7 @@
 from collections import namedtuple
 from itertools import chain
 
-from copy import copy, deepcopy
+from copy import deepcopy
 from django.db.models.query import RawQuerySet
 from django.db import router
 from typing import Any, Union, List, Dict, Tuple
