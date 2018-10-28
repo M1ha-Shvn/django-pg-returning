@@ -1,4 +1,4 @@
-from django.db.models import F, ManyToOneRel
+from django.db.models import F
 from django.test import TestCase
 
 from tests.models import TestModel
@@ -48,5 +48,13 @@ class UpdateReturningTest(TestCase):
         with self.assertRaises(ValueError):
             result.values_list('int_field', 'name', invalid=True)
 
-    def test_no_duplicate_query(self):
-        pass
+    def test_concat(self):
+        result = TestModel.objects.filter(id__gt=2, id__lte=5).update_returning(int_field=21)
+        result2 = TestModel.objects.filter(id__gt=5, id__lte=6).update_returning(int_field=21)
+        r = result + result2
+        self.assertSetEqual({3, 4, 5, 6}, set(r.values_list('id', flat=True)))
+
+        result3 = TestModel.objects.filter(id__gt=5, id__lte=6).only('id').update_returning(int_field=21)
+        with self.assertRaises(ValueError):
+            r = result + result3
+
