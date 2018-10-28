@@ -1,6 +1,7 @@
 from django.db.models import F
 from django.test import TestCase
 
+from django_pg_returning import ReturningQuerySet
 from tests.models import TestModel
 
 
@@ -58,3 +59,6 @@ class UpdateReturningTest(TestCase):
         with self.assertRaises(ValueError):
             r = result + result3
 
+    def test_empty(self):
+        qs = ReturningQuerySet(None)
+        self.assertListEqual([], list(qs))

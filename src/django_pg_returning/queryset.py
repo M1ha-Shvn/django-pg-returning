@@ -18,13 +18,14 @@ class ReturningQuerySet(RawQuerySet):
     """
     def __init__(self, *args, **kwargs):
         # A list of fields, fetched by returning statement, in order to form values_list
-        self._fields = kwargs.pop('fields')
+        self._fields = kwargs.pop('fields', [])
 
         super(ReturningQuerySet, self).__init__(*args, **kwargs)
 
         # HACK Using methods create a new RawQuerySet, based on current data without calling it.
         # I use it here in order to iterate with super().__iter__ method.
-        self._result_cache = list(super(ReturningQuerySet, self).using(self.db))
+        # If raw_query is empty, I think it's an empty QuerySet creation
+        self._result_cache = list(super(ReturningQuerySet, self).using(self.db)) if self.raw_query else []
 
     def __len__(self):
         return len(self._result_cache)
