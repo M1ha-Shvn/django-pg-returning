@@ -3,14 +3,12 @@ This file contains sample models to use in tests
 """
 from django.db import models
 
-from django_pg_returning import UpdateReturningManager
+from django_pg_returning.models import UpdateReturningModel
 
 
-class TestModel(models.Model):
+class TestModel(UpdateReturningModel):
     name = models.CharField(max_length=50, null=True, blank=True, default='')
     int_field = models.IntegerField(null=True, blank=True)
-
-    objects = UpdateReturningManager()
 
 
 # This model is not used in testing, but it creates reversed relations

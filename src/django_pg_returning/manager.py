@@ -1,7 +1,7 @@
 import django
 from django.db import transaction, models
-from django.db.models import sql
-from typing import Dict, Any, List, Type
+from django.db.models import sql, Field
+from typing import Dict, Any, List, Type, Optional, Tuple
 
 from .queryset import ReturningQuerySet
 
@@ -34,8 +34,8 @@ class UpdateReturningMixin(object):
 
         return fields
 
-    def _get_returning_qs(self, query_type, **updates):
-        # type: (Type[sql.Query], **Dict[str, Any]) -> ReturningQuerySet
+    def _get_returning_qs(self, query_type, values=None, **updates):
+        # type: (Type[sql.Query], Optional[Any], **Dict[str, Any]) -> ReturningQuerySet
         """
         Partial for update_returning functions
         :param updates: Data to pass to update(**updates) method
@@ -64,12 +64,16 @@ class UpdateReturningMixin(object):
         if updates:
             query.add_update_values(updates)
 
+        if values:
+            query.add_update_fields(values)
+
         # Disable not supported fields.
         query._annotations = None
         query.select_for_update = False
         query.select_related = False
         query.clear_ordering(force_empty=True)
 
+        self._result_cache = None
         query_sql, query_params = query.get_compiler(self.db).as_sql()
         query_sql = query_sql + ' RETURNING %s' % field_str
         with transaction.atomic(using=self.db, savepoint=False):
@@ -84,6 +88,17 @@ class UpdateReturningMixin(object):
         """
         assert updates, "No updates where provided"
         return self._get_returning_qs(sql.UpdateQuery, **updates)
+
+    def _update_returning(self, values):
+        # type: (List[Tuple[Field, Any, Any]]) -> ReturningQuerySet
+        """
+        A version of update_returning() that accepts field objects instead of field names.
+        Used primarily for model saving and not intended for use by general
+        code (it requires too much poking around at model internals to be
+        useful at that level).
+        """
+        assert values, "No updates where provided"
+        return self._get_returning_qs(sql.UpdateQuery, values=values)
 
     def delete_returning(self):
         # type: (**Dict[str, Any]) -> ReturningQuerySet
