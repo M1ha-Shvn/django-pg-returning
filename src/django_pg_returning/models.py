@@ -2,13 +2,12 @@ from typing import Iterable, Optional, List
 
 from django.db import models
 
-from django_pg_returning import UpdateReturningManager, UpdateReturningMixin
+from .manager import UpdateReturningManager, UpdateReturningMixin, UpdateReturningQuerySet
 
 
 class UpdateReturningModel(models.Model):
     class Meta:
         abstract = True
-        base_manager_name = 'objects'
 
     objects = UpdateReturningManager()
 
@@ -32,6 +31,9 @@ class UpdateReturningModel(models.Model):
         # This method should be supported by any django QuerySet
         if update_fields is not None:
             qs = qs.only(*update_fields)
+
+        # In earlier django there is no ability to change base QuerySet
+        qs = UpdateReturningQuerySet.clone_query_set(qs)
 
         res = qs._update_returning(values)
         if res.count() > 0:

@@ -1,8 +1,9 @@
 import django
 from django.db import transaction, models
-from django.db.models import sql, Field
+from django.db.models import sql, Field, QuerySet
 from typing import Dict, Any, List, Type, Optional, Tuple
 
+from .compatibility import chain_query
 from .queryset import ReturningQuerySet
 
 
@@ -55,11 +56,7 @@ class UpdateReturningMixin(object):
 
         self._for_write = True
 
-        # In django 2 query.clone() method in update was replaced with chain method
-        if django.VERSION >= (2,):
-            query = self.query.chain(query_type)
-        else:
-            query = self.query.clone(query_type)
+        query = chain_query(self, query_type)
 
         if updates:
             query.add_update_values(updates)
@@ -110,7 +107,28 @@ class UpdateReturningMixin(object):
 
 
 class UpdateReturningQuerySet(UpdateReturningMixin, models.QuerySet):
-    pass
+    @classmethod
+    def clone_query_set(cls, qs: QuerySet):
+        """
+        Copies standard QuerySet.clone() method, changing base class name
+        :param qs:
+        :return:
+        """
+        query = chain_query(qs)
+        c = cls(model=qs.model, query=query, using=qs._db, hints=qs._hints)
+        c._sticky_filter = qs._sticky_filter
+        c._for_write = qs._for_write
+        c._prefetch_related_lookups = qs._prefetch_related_lookups[:]
+        c._known_related_objects = qs._known_related_objects
+
+        # Some fields are absent in earlier django versions
+        if hasattr(qs, '_iterable_class'):
+            c._iterable_class = qs._iterable_class
+
+        if hasattr(qs, '_fields'):
+            c._fields = qs._fields
+
+        return c
 
 
 class UpdateReturningManager(models.Manager):
