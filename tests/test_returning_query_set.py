@@ -62,3 +62,17 @@ class UpdateReturningTest(TestCase):
     def test_empty(self):
         qs = ReturningQuerySet(None)
         self.assertListEqual([], list(qs))
+
+    def test_first(self):
+        result = TestModel.objects.all().update_returning(int_field=F('pk') + 2)
+        self.assertEqual(1, result.first().id)
+
+        result = TestModel.objects.filter(id=100).update_returning(int_field=F('pk') + 2)
+        self.assertIsNone(result.first())
+
+    def test_last(self):
+        result = TestModel.objects.all().update_returning(int_field=F('pk') + 2)
+        self.assertEqual(9, result.last().id)
+
+        result = TestModel.objects.filter(id=100).update_returning(int_field=F('pk') + 2)
+        self.assertIsNone(result.last())
