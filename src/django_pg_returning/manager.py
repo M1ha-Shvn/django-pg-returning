@@ -97,8 +97,7 @@ class UpdateReturningMixin(object):
         assert values, "No updates where provided"
         return self._get_returning_qs(sql.UpdateQuery, values=values)
 
-    def delete_returning(self):
-        # type: (**Dict[str, Any]) -> ReturningQuerySet
+    def delete_returning(self):  # type: () -> ReturningQuerySet
         """
         Gets RawQuerySet of all fields, got with DELETE ... RETURNING
         :return: RawQuerySet
