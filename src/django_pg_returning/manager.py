@@ -108,11 +108,11 @@ class UpdateReturningMixin(object):
 
 class UpdateReturningQuerySet(UpdateReturningMixin, models.QuerySet):
     @classmethod
-    def clone_query_set(cls, qs: QuerySet):
+    def clone_query_set(cls, qs):  # type: (QuerySet) -> UpdateReturningQuerySet
         """
         Copies standard QuerySet.clone() method, changing base class name
-        :param qs:
-        :return:
+        :param qs: QuerySet to copy from
+        :return: An UpdateReturningQuerySet, cloned from qs
         """
         query = chain_query(qs)
         c = cls(model=qs.model, query=query, using=qs._db, hints=qs._hints)
