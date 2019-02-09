@@ -2,9 +2,10 @@ from collections import namedtuple
 from itertools import chain
 
 from copy import deepcopy
+from django.db.models import Model
 from django.db.models.query import RawQuerySet
 from django.db import router
-from typing import Any, Union, List, Dict, Tuple
+from typing import Any, Union, List, Dict, Tuple, Optional
 
 
 class ReturningQuerySet(RawQuerySet):
@@ -113,3 +114,17 @@ class ReturningQuerySet(RawQuerySet):
             return [Row(*[getattr(item, f) for f in fields]) for item in self._result_cache]
         else:
             return [tuple(getattr(item, f) for f in fields) for item in self._result_cache]
+
+    def first(self):  # type: () -> Optional[Model]
+        """
+        Returns first QuerySet element or None if QuerySet is empty
+        :return: Model instance
+        """
+        return self._result_cache[0] if len(self._result_cache) else None
+
+    def last(self):  # type: () -> Optional[Model]
+        """
+        Returns last QuerySet element or None if QuerySet is empty
+        :return: Model instance
+        """
+        return self._result_cache[-1] if len(self._result_cache) else None
