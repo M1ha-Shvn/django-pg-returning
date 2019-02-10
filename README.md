@@ -135,6 +135,10 @@ print(result.count(), len(result))
 print(result[1], result[0:2])
 # Output: MyModel(...), [MyModel(...), MyModel(...), MyModel(...)]
 
+# Sintax sugar for indexing
+print(result.first(), result.last())
+# Output: [MyModel(...), MyModel(...)]
+
 # Fetching values and values_list. Both methods use cache and return lists, not ValuesQuerySet like django does.
 # values() method cakked without fields will return all fields, fetched in returning method.
 # values_list() method called without fields will raise exception, as order or fields in result tuple is not obvious.
