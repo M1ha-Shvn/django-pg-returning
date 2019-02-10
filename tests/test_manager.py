@@ -79,7 +79,6 @@ class UpdateReturningTest(TestCase):
             self.assertEqual(3 + i, item.id)
 
 
-
 class DeleteReturningTest(TestCase):
     fixtures = ['test_model']
 

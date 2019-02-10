@@ -22,28 +22,26 @@ or via setup.py:
 ## Usage
 
 ### Integration
-To use library [QuerySet](https://docs.djangoproject.com/en/2.0/ref/models/querysets/) methods,
- just add UpdateReturningManager to your model:
+The easiest way to integrate, is to inherit your model from `UpdateReturningModel` instead of `django.db.models.Model`.
+It already has redeclared Manager, supporting returning operations.
 ```python
 from django.db import models
-from django_pg_returning import UpdateReturningManager
+from django_pg_returning import UpdateReturningModel
 
-class MyModel(models.Model):
-    objects = UpdateReturningManager()
-    
+class MyModel(UpdateReturningModel):   
     field = models.IntegerField()
 ```
 
-If you already have custom manager, you can implement get_queryset() method in it:
+If you already have custom manager, you can implement `get_queryset()` method in it:
 ```python
 from django.db import models
-from django_pg_returning import UpdateReturningQuerySet
+from django_pg_returning import UpdateReturningQuerySet, UpdateReturningModel
 
 class MyManager(models.Manager):
     def get_queryset(self):
         return UpdateReturningQuerySet(using=self.db, model=self.model)
 
-class MyModel(models.Model):
+class MyModel(UpdateReturningModel):
     objects = MyManager()
     
     field = models.IntegerField()
@@ -52,7 +50,7 @@ class MyModel(models.Model):
 And if you have custom manager you can use a mixin:
 ```python
 from django.db import models
-from django_pg_returning import UpdateReturningMixin
+from django_pg_returning import UpdateReturningMixin, UpdateReturningModel
 
 class MyQuerySet(models.QuerySet, UpdateReturningMixin):
     pass
@@ -61,14 +59,15 @@ class MyManager(models.Manager):
     def get_queryset(self):
         return MyQuerySet(using=self.db, model=self.model)
 
-class MyModel(models.Model):
+class MyModel(UpdateReturningModel):
     objects = MyManager()
     
     field = models.IntegerField()
 ```
 
 ### Methods
-After mixin is integrated with model, your QuerySet-s will have 2 additional methods:
+#### QuerySet methods
+After QuerySet mixin is integrated with your model, your QuerySet-s will have 2 additional methods:
 ```python
 # Any django queryset you like
 qs = MyModel.objects.all()
@@ -77,13 +76,34 @@ qs = MyModel.objects.all()
 result = qs.update_returning(field=1)
 
 # Delete data and return a ReturningQuerySet, described below
-result = qs.update_returning(field=1)
+result = qs.delete_returning()
 ```
 By default methods get all fields, fetched by the model. 
 To limit fields returned, you can use standard 
 [QuerySet.only()](https://docs.djangoproject.com/en/2.0/ref/models/querysets/#django.db.models.query.QuerySet.only) 
 and 
 [QuerySet.defer()](https://docs.djangoproject.com/en/2.0/ref/models/querysets/#defer) methods.
+
+#### Model methods
+If model instance is created, basic `save()` method is called.  
+If model is updated, database record is updated, and saved fields are refreshed with database values.
+This may be useful, if you update fields with [F() expressions](https://docs.djangoproject.com/en/2.1/ref/models/expressions/#f-expressions).
+By default all fields are saved and refreshed. 
+Use [update_fields](https://docs.djangoproject.com/en/2.1/ref/models/instances/#specifying-which-fields-to-save) to specify concrete fields to save and refresh.
+```python
+instance = MyModel.objects.create(pk=1, field=1)
+instance.field = F('field') + 1
+
+# Basic save method will not change field and you don't know, what value is in database
+instance.save()
+print(instance.field)
+# Output: F('field') + Value(1)
+
+# Library method gives ability to fetch updated result 
+instance.save_returning()
+print(instance.field)
+# Output: 2
+```
 
 *Important notes*:
 1) If you don't fetch field, and then try to get it, 

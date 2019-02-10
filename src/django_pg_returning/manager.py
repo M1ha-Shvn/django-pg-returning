@@ -1,8 +1,9 @@
 import django
 from django.db import transaction, models
-from django.db.models import sql
-from typing import Dict, Any, List, Type
+from django.db.models import sql, Field, QuerySet
+from typing import Dict, Any, List, Type, Optional, Tuple
 
+from .compatibility import chain_query
 from .queryset import ReturningQuerySet
 
 
@@ -34,8 +35,8 @@ class UpdateReturningMixin(object):
 
         return fields
 
-    def _get_returning_qs(self, query_type, **updates):
-        # type: (Type[sql.Query], **Dict[str, Any]) -> ReturningQuerySet
+    def _get_returning_qs(self, query_type, values=None, **updates):
+        # type: (Type[sql.Query], Optional[Any], **Dict[str, Any]) -> ReturningQuerySet
         """
         Partial for update_returning functions
         :param updates: Data to pass to update(**updates) method
@@ -55,14 +56,13 @@ class UpdateReturningMixin(object):
 
         self._for_write = True
 
-        # In django 2 query.clone() method in update was replaced with chain method
-        if django.VERSION >= (2,):
-            query = self.query.chain(query_type)
-        else:
-            query = self.query.clone(query_type)
+        query = chain_query(self, query_type)
 
         if updates:
             query.add_update_values(updates)
+
+        if values:
+            query.add_update_fields(values)
 
         # Disable not supported fields.
         query._annotations = None
@@ -70,6 +70,7 @@ class UpdateReturningMixin(object):
         query.select_related = False
         query.clear_ordering(force_empty=True)
 
+        self._result_cache = None
         query_sql, query_params = query.get_compiler(self.db).as_sql()
         query_sql = query_sql + ' RETURNING %s' % field_str
         with transaction.atomic(using=self.db, savepoint=False):
@@ -85,8 +86,18 @@ class UpdateReturningMixin(object):
         assert updates, "No updates where provided"
         return self._get_returning_qs(sql.UpdateQuery, **updates)
 
-    def delete_returning(self):
-        # type: (**Dict[str, Any]) -> ReturningQuerySet
+    def _update_returning(self, values):
+        # type: (List[Tuple[Field, Any, Any]]) -> ReturningQuerySet
+        """
+        A version of update_returning() that accepts field objects instead of field names.
+        Used primarily for model saving and not intended for use by general
+        code (it requires too much poking around at model internals to be
+        useful at that level).
+        """
+        assert values, "No updates where provided"
+        return self._get_returning_qs(sql.UpdateQuery, values=values)
+
+    def delete_returning(self):  # type: () -> ReturningQuerySet
         """
         Gets RawQuerySet of all fields, got with DELETE ... RETURNING
         :return: RawQuerySet
@@ -95,7 +106,28 @@ class UpdateReturningMixin(object):
 
 
 class UpdateReturningQuerySet(UpdateReturningMixin, models.QuerySet):
-    pass
+    @classmethod
+    def clone_query_set(cls, qs):  # type: (QuerySet) -> UpdateReturningQuerySet
+        """
+        Copies standard QuerySet.clone() method, changing base class name
+        :param qs: QuerySet to copy from
+        :return: An UpdateReturningQuerySet, cloned from qs
+        """
+        query = chain_query(qs)
+        c = cls(model=qs.model, query=query, using=qs._db, hints=qs._hints)
+        c._sticky_filter = qs._sticky_filter
+        c._for_write = qs._for_write
+        c._prefetch_related_lookups = qs._prefetch_related_lookups[:]
+        c._known_related_objects = qs._known_related_objects
+
+        # Some fields are absent in earlier django versions
+        if hasattr(qs, '_iterable_class'):
+            c._iterable_class = qs._iterable_class
+
+        if hasattr(qs, '_fields'):
+            c._fields = qs._fields
+
+        return c
 
 
 class UpdateReturningManager(models.Manager):
