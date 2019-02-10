@@ -137,7 +137,7 @@ print(result[1], result[0:2])
 
 # Sintax sugar for indexing
 print(result.first(), result.last())
-# Output: [MyModel(...), MyModel(...)]
+# Output: MyModel(...), MyModel(...)
 
 # Fetching values and values_list. Both methods use cache and return lists, not ValuesQuerySet like django does.
 # values() method cakked without fields will return all fields, fetched in returning method.
