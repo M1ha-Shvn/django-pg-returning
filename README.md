@@ -3,14 +3,14 @@ A small library implementing PostgreSQL ability to return rows in DML statements
 [Link to PostgreSQL docs](https://www.postgresql.org/docs/10/static/sql-update.html)
 
 ## Requirements
-* Python 2.7 or Python 3.3+
+* Python 2.7 or Python 3.4+
 * django >= 1.7  
   Previous versions may also work, but haven't been tested.  
 * pytz
 * six
 * typing
 * psycopg2
-* PostgreSQL 9.2+   
+* PostgreSQL 9.3+   
   Previous versions may also work, but haven't been tested.  
 
 ## Installation
