@@ -78,6 +78,11 @@ class UpdateReturningTest(TestCase):
             self.assertEqual(3 + i, item.int_field)
             self.assertEqual(3 + i, item.id)
 
+    def test_empty_filter(self):
+        # This test originates from https://github.com/M1hacka/django-pg-returning/issues/9
+        res = TestModel.objects.filter(id__in=[]).update_returning(name='abc')
+        self.assertEqual(0, res.count())
+
 
 class DeleteReturningTest(TestCase):
     fixtures = ['test_model']
@@ -132,3 +137,8 @@ class DeleteReturningTest(TestCase):
             # Test data
             self.assertEqual(3 + i, item.int_field)
             self.assertEqual(3 + i, item.id)
+
+    def test_empty_filter(self):
+        # This test originates from https://github.com/M1hacka/django-pg-returning/issues/9
+        res = TestModel.objects.filter(id__in=[]).update_returning(name='abc')
+        self.assertEqual(0, res.count())

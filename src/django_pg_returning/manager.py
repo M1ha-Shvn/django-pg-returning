@@ -3,6 +3,8 @@ from django.db import transaction, models
 from django.db.models import sql, Field, QuerySet
 from typing import Dict, Any, List, Type, Optional, Tuple
 
+from django.db.models.query import EmptyResultSet
+
 from .compatibility import chain_query
 from .queryset import ReturningQuerySet
 
@@ -71,7 +73,11 @@ class UpdateReturningMixin(object):
         query.clear_ordering(force_empty=True)
 
         self._result_cache = None
-        query_sql, query_params = query.get_compiler(self.db).as_sql()
+        try:
+            query_sql, query_params = query.get_compiler(self.db).as_sql()
+        except EmptyResultSet:
+            return ReturningQuerySet(None)
+
         query_sql = query_sql + ' RETURNING %s' % field_str
         with transaction.atomic(using=self.db, savepoint=False):
             return ReturningQuerySet(query_sql, model=self.model, params=query_params, using=self.db,
