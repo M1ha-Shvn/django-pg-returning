@@ -57,7 +57,7 @@ class UpdateReturningTest(TestCase):
 
         result3 = TestModel.objects.filter(id__gt=5, id__lte=6).only('id').update_returning(int_field=21)
         with self.assertRaises(ValueError):
-            r = result + result3
+            _ = result + result3
 
     def test_empty(self):
         qs = ReturningQuerySet(None)
@@ -65,14 +65,16 @@ class UpdateReturningTest(TestCase):
 
     def test_first(self):
         result = TestModel.objects.all().update_returning(int_field=F('pk') + 2)
-        self.assertEqual(1, result.first().id)
+        all_items = result.values_list('id', flat=True)
+        self.assertEqual(all_items[0], result.first().id)
 
         result = TestModel.objects.filter(id=100).update_returning(int_field=F('pk') + 2)
         self.assertIsNone(result.first())
 
     def test_last(self):
         result = TestModel.objects.all().update_returning(int_field=F('pk') + 2)
-        self.assertEqual(9, result.last().id)
+        all_items = result.values_list('id', flat=True)
+        self.assertEqual(all_items[-1], result.last().id)
 
         result = TestModel.objects.filter(id=100).update_returning(int_field=F('pk') + 2)
         self.assertIsNone(result.last())
