@@ -11,9 +11,9 @@ class TestModel(UpdateReturningModel):
     int_field = models.IntegerField(null=True, blank=True)
 
 
-# This model is not used in testing, but it creates reversed relations
-# This is a simulation of issue-2
-class TestRelModel(models.Model):
+# This model creates reversed relations
+# This is a simulation of issue-2 and issue-10
+class TestRelModel(UpdateReturningModel):
     fk = models.ForeignKey(TestModel, on_delete=models.CASCADE, related_name='fk')
     m2m = models.ManyToManyField(TestModel, related_name='m2m')
-    o2m = models.OneToOneField(TestModel, on_delete=models.CASCADE, related_name='o2m')
+    o2o = models.OneToOneField(TestModel, on_delete=models.CASCADE, related_name='o2o')
