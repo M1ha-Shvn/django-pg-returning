@@ -1,11 +1,10 @@
-import django
 from django.db import transaction, models
 from django.db.models import sql, Field, QuerySet
 from typing import Dict, Any, List, Type, Optional, Tuple
 
 from django.db.models.query import EmptyResultSet
 
-from .compatibility import chain_query
+from .compatibility import chain_query, get_model_fields
 from .queryset import ReturningQuerySet
 
 
@@ -27,13 +26,8 @@ class UpdateReturningMixin(object):
 
         # No .only() or .defer() operations
         if not fields:
-            if django.VERSION < (1, 8):
-                fields = self.model._meta.local_fields
-            else:
-                fields = self.model._meta.get_fields()
-
-            # Remove all related fields - they are not from this model
-            fields = {self.model: [f for f in fields if not getattr(f, 'is_relation', False)]}
+            # Remove all fields without columns in table
+            fields = {self.model: get_model_fields(self.model, concrete=True)}
 
         return fields
 
