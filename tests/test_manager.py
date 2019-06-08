@@ -1,10 +1,11 @@
 """
 This file contains tests for UpdateReturningManager
 """
+from unittest import skipIf
+
 import django
 from django.db import connection
 from django.db.models import Model, F
-from django.db.models.functions import Coalesce
 from django.db.models.query_utils import DeferredAttribute
 from django.test import TestCase
 
@@ -165,7 +166,7 @@ class DeleteReturningTest(TestCase):
 class BulkCreateReturningTest(TestCase):
     fixtures = ['test_model']
 
-    def setUp(self) -> None:
+    def setUp(self):
         cursor = connection.cursor()
         cursor.execute('''
             CREATE OR REPLACE FUNCTION int_field_trigger()
@@ -205,7 +206,9 @@ class BulkCreateReturningTest(TestCase):
         # Result returned correct
         for item in result:
             self.assertIsInstance(item, TestModel)
-            self.assertIsInstance(item.pk, int)
+            if django.VERSION >= (1, 10):
+                self.assertIsInstance(item.pk, int)
+
             if item.name in expected_replaces and replaced:
                 self.assertEqual(item.int_field, 100500)
             else:
@@ -219,6 +222,7 @@ class BulkCreateReturningTest(TestCase):
         result = TestModel.objects.bulk_create_returning([TestModel(**data) for data in create_objs])
         self._test_result(create_objs, result, 11)
 
+    @skipIf(django.VERSION < (1, 10), "Not supported for django before 1.10")
     def test_only(self):
         create_objs = [
             {'name': 'name1', 'int_field': 1},
@@ -234,6 +238,7 @@ class BulkCreateReturningTest(TestCase):
         result = TestModel.objects.only('int_field').bulk_create_returning([TestModel(**data) for data in create_objs])
         self._test_result(create_objs, result, 13)
 
+    @skipIf(django.VERSION < (1, 10), "Not supported for django before 1.10")
     def test_defer(self):
         create_objs = [
             {'name': 'name1', 'int_field': 1},
@@ -259,3 +264,11 @@ class BulkCreateReturningTest(TestCase):
         for item in result:
             self.assertFalse(_attr_is_deferred(item, 'fk_id'))
             self.assertFalse(_attr_is_deferred(item, 'o2o_id'))
+
+    def test_base_bulk_create(self):
+        create_objs = [
+            {'name': 'name1', 'int_field': 1},
+            {'name': 'name2', 'int_field': 2}
+        ]
+        result = TestModel.objects.bulk_create([TestModel(**data) for data in create_objs])
+        self._test_result(create_objs, result, 11, replaced=False)
