@@ -17,7 +17,7 @@ class UpdateReturningMixin(object):
         """
         target[model] = fields
 
-    def _insert(self, objs, fields, return_id=False, raw=False, using=None):
+    def _insert(self, objs, fields, return_id=False, raw=False, using=None, ignore_conflicts=False):
         """
         Replaces standard insert procedure for bulk_create_returning
         """
@@ -34,7 +34,8 @@ class UpdateReturningMixin(object):
 
         self._for_write = True
 
-        query = sql.InsertQuery(self.model)
+        kwargs = {} if django.VERSION < (2, 2) else {'ignore_conflicts': ignore_conflicts}
+        query = sql.InsertQuery(self.model, **kwargs)
         query.insert_values(fields, objs, raw=raw)
 
         self.model._insert_returning_cache = self._execute_sql(query, return_fields, using=using)
