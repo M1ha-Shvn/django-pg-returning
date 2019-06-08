@@ -67,7 +67,7 @@ class MyModel(UpdateReturningModel):
 
 ### Methods
 #### QuerySet methods
-After QuerySet mixin is integrated with your model, your QuerySet-s will have 2 additional methods:
+After QuerySet mixin is integrated with your model, your QuerySet-s will have 3 additional methods:
 ```python
 # Any django queryset you like
 qs = MyModel.objects.all()
@@ -77,6 +77,10 @@ result = qs.update_returning(field=1)
 
 # Delete data and return a ReturningQuerySet, described below
 result = qs.delete_returning()
+
+# Acts like django's QuerySet.bulk_create() method, but updates all model fields stored in database
+# Can be used to retrieve values, saved by database default/triggers etc.
+result = MyModel.objects.bulk_create_returning([MyModel(field=1)])
 ```
 By default methods get all fields, fetched by the model. 
 To limit fields returned, you can use standard 

@@ -2,6 +2,7 @@ from django.db import transaction, models
 from django.db.models import sql, Field, QuerySet
 from typing import Dict, Any, List, Type, Optional, Tuple
 
+from django.db.models.manager import BaseManager
 from django.db.models.query import EmptyResultSet
 
 from .compatibility import chain_query, get_model_fields
@@ -9,12 +10,37 @@ from .queryset import ReturningQuerySet
 
 
 class UpdateReturningMixin(object):
+    _insert_returning = False
+
     @staticmethod
     def _get_loaded_field_cb(target, model, fields):
         """
         Callback used by get_deferred_field_names().
         """
         target[model] = fields
+
+    def _insert(self, objs, fields, return_id=False, raw=False, using=None):
+        """
+        Replaces standard insert procedure for bulk_create_returning
+        """
+        if not self._insert_returning:
+            return super()._insert(objs, fields, return_id=return_id, raw=raw, using=using)
+
+        # Returns attname, not column.
+        return_fields = self._get_fields()
+        assert len(return_fields) == 1 and list(return_fields.keys())[0] == self.model, \
+            "You can't fetch relative model fields with returning operation"
+
+        self._for_write = True
+
+        query = sql.InsertQuery(self.model)
+        query.insert_values(fields, objs, raw=raw)
+
+        self._insert_cache = self._execute_sql(query, return_fields, using=using)
+        return self._insert_cache.values_list('id', flat=True) if return_id else None
+
+    _insert.alters_data = True
+    _insert.queryset_only = False
 
     def _get_fields(self):  # type: () -> Dict[models.Model: List[models.Field]]
         """
@@ -31,6 +57,27 @@ class UpdateReturningMixin(object):
 
         return fields
 
+    def _execute_sql(self, query, return_fields, using=None):
+        return_fields_str = ', '.join('"%s"' % str(f.column) for f in return_fields[self.model])
+
+        if using is None:
+            using = self.db
+
+        self._result_cache = None
+        try:
+            res = query.get_compiler(using).as_sql()
+            if isinstance(res, list):
+                assert len(res) == 1, "Can't update relative model with returning"
+                res = res[0]
+            query_sql, query_params = res
+        except EmptyResultSet:
+            return ReturningQuerySet(None)
+
+        query_sql = query_sql + ' RETURNING %s' % return_fields_str
+        with transaction.atomic(using=using, savepoint=False):
+            return ReturningQuerySet(query_sql, model=self.model, params=query_params, using=using,
+                                     fields=[f.attname for f in return_fields[self.model]])
+
     def _get_returning_qs(self, query_type, values=None, **updates):
         # type: (Type[sql.Query], Optional[Any], **Dict[str, Any]) -> ReturningQuerySet
         """
@@ -45,10 +92,8 @@ class UpdateReturningMixin(object):
 
         # Returns attname, not column.
         fields = self._get_fields()
-        assert len(fields) == 1 and list(fields.keys())[0] == self.model,\
+        assert len(fields) == 1 and list(fields.keys())[0] == self.model, \
             "You can't fetch relative model fields with returning operation"
-
-        field_str = ', '.join('"%s"' % str(f.column) for f in fields[self.model])
 
         self._for_write = True
 
@@ -66,16 +111,7 @@ class UpdateReturningMixin(object):
         query.select_related = False
         query.clear_ordering(force_empty=True)
 
-        self._result_cache = None
-        try:
-            query_sql, query_params = query.get_compiler(self.db).as_sql()
-        except EmptyResultSet:
-            return ReturningQuerySet(None)
-
-        query_sql = query_sql + ' RETURNING %s' % field_str
-        with transaction.atomic(using=self.db, savepoint=False):
-            return ReturningQuerySet(query_sql, model=self.model, params=query_params, using=self.db,
-                                     fields=[f.attname for f in fields[self.model]])
+        return self._execute_sql(query, fields)
 
     def update_returning(self, **updates):
         # type: (**Dict[str, Any]) -> ReturningQuerySet
@@ -104,6 +140,20 @@ class UpdateReturningMixin(object):
         """
         return self._get_returning_qs(sql.DeleteQuery)
 
+    def bulk_create_returning(self, objs, batch_size=None):
+        self._insert_returning = True
+        self._insert_cache = {}
+
+        result = super().bulk_create(objs, batch_size=batch_size)
+
+        # Replace values fetched from returned data
+        values_dict = {item['id']: item for item in self._insert_cache.values()}
+        for item in result:
+            for k, v in values_dict[item.pk].items():
+                setattr(item, k, v)
+
+        return result
+
 
 class UpdateReturningQuerySet(UpdateReturningMixin, models.QuerySet):
     @classmethod
@@ -130,6 +180,6 @@ class UpdateReturningQuerySet(UpdateReturningMixin, models.QuerySet):
         return c
 
 
-class UpdateReturningManager(models.Manager):
+class UpdateReturningManager(BaseManager.from_queryset(UpdateReturningQuerySet)):
     def get_queryset(self):
         return UpdateReturningQuerySet(using=self.db, model=self.model)
