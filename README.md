@@ -2,10 +2,11 @@
 A small library implementing PostgreSQL ability to return rows in DML statements for Django.  
 [Link to PostgreSQL docs](https://www.postgresql.org/docs/10/static/sql-update.html)
 
-## Requirements
+## <a name="requirements">Requirements</a>
 * Python 2.7 or Python 3.4+
 * django >= 1.7  
   Previous versions may also work, but haven't been tested.  
+  bulk_create_returning method doesn't support .only() and .defer() filters for django before 1.10.
 * pytz
 * six
 * typing
@@ -13,15 +14,15 @@ A small library implementing PostgreSQL ability to return rows in DML statements
 * PostgreSQL 9.3+   
   Previous versions may also work, but haven't been tested.  
 
-## Installation
+## <a name="installation">Installation</a>
 Install via pip:  
 `pip install django-pg-returning`    
 or via setup.py:  
 `python setup.py install`
 
-## Usage
+## <a name="usage">Usage</a>
 
-### Integration
+### <a name="integration">Integration</a>
 The easiest way to integrate, is to inherit your model from `UpdateReturningModel` instead of `django.db.models.Model`.
 It already has redeclared Manager, supporting returning operations.
 ```python
@@ -65,9 +66,9 @@ class MyModel(UpdateReturningModel):
     field = models.IntegerField()
 ```
 
-### Methods
-#### QuerySet methods
-After QuerySet mixin is integrated with your model, your QuerySet-s will have 2 additional methods:
+### <a name="methods">Methods</a>
+#### <a name="queryset_methods">QuerySet methods</a>
+After QuerySet mixin is integrated with your model, your QuerySet-s will have 3 additional methods:
 ```python
 # Any django queryset you like
 qs = MyModel.objects.all()
@@ -77,14 +78,19 @@ result = qs.update_returning(field=1)
 
 # Delete data and return a ReturningQuerySet, described below
 result = qs.delete_returning()
+
+# Acts like django's QuerySet.bulk_create() method, but updates all model fields stored in database
+# Can be used to retrieve values, saved by database default/triggers etc.
+result = MyModel.objects.bulk_create_returning([MyModel(field=1)])
 ```
 By default methods get all fields, fetched by the model. 
 To limit fields returned, you can use standard 
 [QuerySet.only()](https://docs.djangoproject.com/en/2.0/ref/models/querysets/#django.db.models.query.QuerySet.only) 
 and 
 [QuerySet.defer()](https://docs.djangoproject.com/en/2.0/ref/models/querysets/#defer) methods.
+bulk_create_returning doesn't support this methods for django before 1.10.
 
-#### Model methods
+#### <a name="model_methods">Model methods</a>
 If model instance is created, basic `save()` method is called.  
 If model is updated, database record is updated, and saved fields are refreshed with database values.
 This may be useful, if you update fields with [F() expressions](https://docs.djangoproject.com/en/2.1/ref/models/expressions/#f-expressions).
@@ -115,7 +121,7 @@ and
 methods.  
 3) Primary key field is fetched not looking at limiting methods, as django needs it to form a QuerySet
 
-### ReturningQuerySet
+### <a name="returning_queryset">ReturningQuerySet</a>
 The result of returning functions is django_pg_returning.ReturningQuerySet. 
 It is based on django's RawQuerySet, but adds some extra methods to be used easier.
 The main difference is that *ReturningQuerySet caches query results*,
