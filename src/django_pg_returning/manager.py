@@ -171,7 +171,7 @@ class UpdateReturningMixin(object):
             # For django 1.10+ where objects can be matched
             values_dict = {item[self.model._meta.pk.column]: item for item in self.model._insert_returning_cache.values()}
             for item in result:
-                for k, v in values_dict[item.id].items():
+                for k, v in values_dict[getattr(item, self.model._meta.pk.column)].items():
                     setattr(item, k, v)
         else:
             # For django before 1.10 which doesn't fetch primary key
