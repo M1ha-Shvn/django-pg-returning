@@ -39,7 +39,7 @@ class UpdateReturningMixin(object):
         query.insert_values(fields, objs, raw=raw)
 
         self.model._insert_returning_cache = self._execute_sql(query, return_fields, using=using)
-        return self.model._insert_returning_cache.values_list('id', flat=True) if return_id else None
+        return self.model._insert_returning_cache.values_list('pk', flat=True) if return_id else None
 
     _insert.alters_data = True
     _insert.queryset_only = False
@@ -169,7 +169,7 @@ class UpdateReturningMixin(object):
         # Replace values fetched from returned data
         if result and result[0].pk:
             # For django 1.10+ where objects can be matched
-            values_dict = {item['id']: item for item in self.model._insert_returning_cache.values()}
+            values_dict = {item['pk']: item for item in self.model._insert_returning_cache.values()}
             for item in result:
                 for k, v in values_dict[item.id].items():
                     setattr(item, k, v)
