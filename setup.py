@@ -13,7 +13,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='django-pg-returning',
-    version='1.2.2',
+    version='1.2.3',
     packages=['django_pg_returning'],
     package_dir={'': 'src'},
     url='https://github.com/M1hacka/django-pg-returning',

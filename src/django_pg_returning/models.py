@@ -47,6 +47,10 @@ class UpdateReturningModel(models.Model):
         Try to update the model. Return True if the model was updated (if an
         update query was done and a matching row was found in the DB).
         """
+        # If object has been saved in cache using pickle before library update
+        # It can cause getting attribute fail
+        is_returning_update = getattr(self, '_returning_update', False)
+
         filtered = base_qs.filter(pk=pk_val)
         if not values:
             # We can end up here when saving a model in inheritance chain where
@@ -64,7 +68,7 @@ class UpdateReturningModel(models.Model):
                 # successfully (a row is matched and updated). In order to
                 # distinguish these two cases, the object's existence in the
                 # database is again checked for if the UPDATE query returns 0.
-                if self._returning_update:
+                if is_returning_update:
                     updated_count = self._do_update_and_refresh(filtered, values, update_fields)
                 else:
                     updated_count = filtered._update(values)
@@ -72,7 +76,7 @@ class UpdateReturningModel(models.Model):
             else:
                 return False
 
-        if self._returning_update:
+        if is_returning_update:
             return self._do_update_and_refresh(filtered, values, update_fields) > 0
         else:
             return filtered._update(values) > 0
