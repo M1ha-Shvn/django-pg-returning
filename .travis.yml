@@ -12,6 +12,8 @@ addons:
     - postgresql-client-10
     - postgresql-11
     - postgresql-client-11
+
+    # This library gives support of systemd for postgres 9.3
     - systemd-sysv
 
 python:
