@@ -11,7 +11,7 @@ A small library implementing PostgreSQL ability to return rows in DML statements
 * six
 * typing
 * psycopg2
-* PostgreSQL 9.3+   
+* PostgreSQL 9.4+   
   Previous versions may also work, but haven't been tested.  
 
 ## <a name="installation">Installation</a>
