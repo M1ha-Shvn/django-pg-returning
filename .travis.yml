@@ -20,6 +20,7 @@ python:
   - 3.5
   - 3.6
   - 3.7
+  - 3.8
 
 env:
   - DJANGO=1.7 PG=9.4
@@ -70,6 +71,12 @@ env:
   - DJANGO=2.2 PG=10
   - DJANGO=2.2 PG=11
   - DJANGO=2.2 PG=12
+  - DJANGO=3.0 PG=9.4
+  - DJANGO=3.0 PG=9.5
+  - DJANGO=3.0 PG=9.6
+  - DJANGO=3.0 PG=10
+  - DJANGO=3.0 PG=11
+  - DJANGO=3.0 PG=12
 
 matrix:
   exclude:
@@ -247,7 +254,6 @@ matrix:
     env: DJANGO=1.10 PG=11
   - python: 3.7
     env: DJANGO=1.10 PG=12
-
 
 before_install:
   # Set up PostgreSQL 11 and 12
