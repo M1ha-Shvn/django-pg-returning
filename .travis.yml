@@ -5,7 +5,7 @@ cache: pip
 services:
   - postgresql
 addons:
-  postgresql: "11"
+  postgresql: "12"
   apt:
     packages:
     - postgresql-10
@@ -307,7 +307,7 @@ before_install:
   - sudo sed -i 's/port = 5433/port = 5432/' /etc/postgresql/11/main/postgresql.conf
   - sudo cp /etc/postgresql/{10,11}/main/pg_hba.conf
 
-  - sudo sed -i 's/port = 5433/port = 5432/' /etc/postgresql/12/main/postgresql.conf
+  - sudo sed -i 's/port = 5434/port = 5432/' /etc/postgresql/12/main/postgresql.conf
   - sudo cp /etc/postgresql/{10,12}/main/pg_hba.conf
 
   # Start PostgreSQL version we need
