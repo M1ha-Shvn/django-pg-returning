@@ -1,8 +1,8 @@
+from typing import Dict, Any, List, Type, Optional, Tuple
+
 import django
 from django.db import transaction, models
 from django.db.models import sql, Field, QuerySet
-from typing import Dict, Any, List, Type, Optional, Tuple
-
 from django.db.models.query import EmptyResultSet
 
 from .compatibility import chain_query, get_model_fields
@@ -17,12 +17,12 @@ class UpdateReturningMixin(object):
         """
         target[model] = fields
 
-    def _insert(self, objs, fields, return_id=False, raw=False, using=None, ignore_conflicts=False):
+    def _insert(self, objs, fields, **kwargs):
         """
         Replaces standard insert procedure for bulk_create_returning
         """
         if not getattr(self.model, '_insert_returning', False):
-            return QuerySet._insert(self, objs, fields, return_id=return_id, raw=raw, using=using)
+            return QuerySet._insert(self, objs, fields, **kwargs)
 
         # Returns attname, not column.
         # Before django 1.10 pk fields hasn't been returned from postgres.
@@ -33,13 +33,20 @@ class UpdateReturningMixin(object):
             "You can't fetch relative model fields with returning operation"
 
         self._for_write = True
+        using = kwargs.get('using', None) or self.db
 
-        kwargs = {} if django.VERSION < (2, 2) else {'ignore_conflicts': ignore_conflicts}
-        query = sql.InsertQuery(self.model, **kwargs)
-        query.insert_values(fields, objs, raw=raw)
+        query_kwargs = {} if django.VERSION < (2, 2) else {'ignore_conflicts': kwargs.get('ignore_conflicts')}
+        query = sql.InsertQuery(self.model, **query_kwargs)
+        query.insert_values(fields, objs, raw=kwargs.get('raw'))
 
         self.model._insert_returning_cache = self._execute_sql(query, return_fields, using=using)
-        return self.model._insert_returning_cache.values_list(self.model._meta.pk.column, flat=True) if return_id else None
+        if django.VERSION < (3,):
+            return self.model._insert_returning_cache.values_list(self.model._meta.pk.column, flat=True) \
+                if kwargs.get('return_id', False) else None
+        else:
+            returning_fields = kwargs.get('returning_fields', None)
+            return self.model._insert_returning_cache.values_list(*(f.column for f in returning_fields)) \
+                if returning_fields is not None else None
 
     _insert.alters_data = True
     _insert.queryset_only = False
@@ -92,7 +99,7 @@ class UpdateReturningMixin(object):
         :raises AssertionError: If input data is invalid
         """
         assert self.query.can_filter(), "Can not update or delete once a slice has been taken."
-        assert getattr(self, '_fields', None) is None,\
+        assert getattr(self, '_fields', None) is None, \
             "Can not call delete() or update() after .values() or .values_list()"
 
         # Returns attname, not column.
@@ -169,7 +176,8 @@ class UpdateReturningMixin(object):
         # Replace values fetched from returned data
         if result and result[0].pk:
             # For django 1.10+ where objects can be matched
-            values_dict = {item[self.model._meta.pk.column]: item for item in self.model._insert_returning_cache.values()}
+            values_dict = {item[self.model._meta.pk.column]: item for item in
+                           self.model._insert_returning_cache.values()}
             for item in result:
                 for k, v in values_dict[item.pk].items():
                     setattr(item, k, v)
