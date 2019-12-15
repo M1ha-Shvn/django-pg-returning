@@ -201,7 +201,7 @@ matrix:
   - python: 3.8
     env: DJANGO=1.7 PG=12
 
-  # python 3.6 has deprecated issue with django before 1.11
+  # python 3.6+ has deprecated issue with django before 1.11
   # https://stackoverflow.com/questions/41343263/provide-classcell-example-for-python-3-6-metaclass\
   - python: 3.6
     env: DJANGO=1.8 PG=9.4
@@ -227,7 +227,7 @@ matrix:
     env: DJANGO=1.8 PG=11
   - python: 3.7
     env: DJANGO=1.8 PG=12
-  - python: 3.7
+  - python: 3.8
     env: DJANGO=1.8 PG=9.4
   - python: 3.8
     env: DJANGO=1.8 PG=9.5
@@ -297,7 +297,7 @@ matrix:
     env: DJANGO=1.10 PG=11
   - python: 3.7
     env: DJANGO=1.10 PG=12
-  - python: 3.7
+  - python: 3.8
     env: DJANGO=1.10 PG=9.4
   - python: 3.8
     env: DJANGO=1.10 PG=9.5
