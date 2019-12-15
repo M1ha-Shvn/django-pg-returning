@@ -143,6 +143,14 @@ matrix:
   - python: 3.5
     env: DJANGO=3.0 PG=12
 
+  # Django 3.0+ doesn't support Postgresql 9.4
+  - python: 3.6
+    env: DJANGO=3.0 PG=9.4
+  - python: 3.7
+    env: DJANGO=3.0 PG=9.4
+  - python: 3.8
+    env: DJANGO=3.0 PG=9.4
+
   # Django 1.7 doesn't support python 3.5+
   - python: 3.5
     env: DJANGO=1.7 PG=9.4
