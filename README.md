@@ -4,7 +4,7 @@ A small library implementing PostgreSQL ability to return rows in DML statements
 
 ## <a name="requirements">Requirements</a>
 * Python 2.7 or Python 3.5+
-* django >= 1.7  
+* django >= 1.8  
   Previous versions may also work, but haven't been tested.  
   bulk_create_returning method doesn't support .only() and .defer() filters for django before 1.10.
 * pytz
