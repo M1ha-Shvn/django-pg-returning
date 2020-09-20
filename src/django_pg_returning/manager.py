@@ -3,10 +3,16 @@ from typing import Dict, Any, List, Type, Optional, Tuple
 import django
 from django.db import transaction, models
 from django.db.models import sql, Field, QuerySet
-from django.db.models.query import EmptyResultSet
 
 from .compatibility import chain_query, get_model_fields
 from .queryset import ReturningQuerySet
+
+# DEPRECATED class package changed in django 1.11
+#  link has been removed in django 3.1
+try:
+    from django.core.exceptions import EmptyResultSet
+except ImportError:
+    from django.db.models.query import EmptyResultSet
 
 
 class UpdateReturningMixin(object):
