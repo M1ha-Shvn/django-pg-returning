@@ -5,7 +5,8 @@ from unittest import skipIf
 
 import django
 from django.db import connection
-from django.db.models import Model, F
+from django.db.models import Model, F, Value
+from django.db.models.functions import Concat
 from django.db.models.query_utils import DeferredAttribute
 from django.test import TestCase
 
@@ -272,3 +273,19 @@ class BulkCreateReturningTest(TestCase):
         ]
         result = TestModel.objects.bulk_create([TestModel(**data) for data in create_objs])
         self._test_result(create_objs, result, 11, replaced=False)
+
+
+class CreateReturningTest(TestCase):
+    fixtures = ['test_model']
+
+    def test_simple(self):
+        result = TestModel.objects.create_returning(name=Concat(Value("hello "), Value("world")))
+
+        with self.subTest('returned data'):
+            self.assertEqual('hello world', result.name)
+            self.assertIsNone(result.int_field)
+
+        with self.subTest('database data'):
+            instance = result.refresh_from_db()
+            self.assertEqual('hello world', instance.name)
+            self.assertIsNone(result.int_field)

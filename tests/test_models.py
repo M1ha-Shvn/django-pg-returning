@@ -1,4 +1,5 @@
-from django.db.models import F
+from django.db.models import F, Value
+from django.db.models.functions import Concat
 from django.test import TestCase
 
 from tests.models import TestModel
@@ -6,6 +7,11 @@ from tests.models import TestModel
 
 class SaveReturningTest(TestCase):
     fixtures = ['test_model']
+
+    def test_create(self):
+        instance = TestModel(name=Concat(Value("hello "), Value("world")))
+        instance.save_returning()
+        self.assertEqual('hello world', instance.name)
 
     def test_no_update_fields(self):
         instance = TestModel.objects.get(pk=1)
