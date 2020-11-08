@@ -70,6 +70,8 @@ class MyModel(UpdateReturningModel):
 #### <a name="queryset_methods">QuerySet methods</a>
 After QuerySet mixin is integrated with your model, your QuerySet-s will have 3 additional methods:
 ```python
+from django.db.models import Value
+
 # Any django queryset you like
 qs = MyModel.objects.all()
 
@@ -79,16 +81,24 @@ result = qs.update_returning(field=1)
 # Delete data and return a ReturningQuerySet, described below
 result = qs.delete_returning()
 
-# Acts like django's QuerySet.bulk_create() method, but updates all model fields stored in database
+# Acts like django's QuerySet.create() method, but updates all model fields to values stored in database
 # Can be used to retrieve values, saved by database default/triggers etc.
-result = MyModel.objects.bulk_create_returning([MyModel(field=1)])
+result = MyModel.objects.create_returning(field=Value(1) + Value(2))
+print(result.field)  # prints: "3" instead of "Value(1) + Value(2)"
+
+# Acts like django's QuerySet.bulk_create() method, but updates all model fields to values stored in database
+# Can be used to retrieve values, saved by database default/triggers etc.
+result = MyModel.objects.bulk_create_returning([MyModel(field=Value(1) + Value(2))])
+print(result[0].field)  # prints: "3" instead of "Value(1) + Value(2)"
 ```
 By default methods get all fields, fetched by the model. 
 To limit fields returned, you can use standard 
 [QuerySet.only()](https://docs.djangoproject.com/en/2.0/ref/models/querysets/#django.db.models.query.QuerySet.only) 
 and 
 [QuerySet.defer()](https://docs.djangoproject.com/en/2.0/ref/models/querysets/#defer) methods.
-bulk_create_returning doesn't support this methods for django before 1.10.
+`create_returning` doesn't support this methods.  
+`bulk_create_returning` doesn't support this methods for django before 1.10.  
+
 
 #### <a name="model_methods">Model methods</a>
 If model instance is created, basic `save()` method is called.  
@@ -97,7 +107,14 @@ This may be useful, if you update fields with [F() expressions](https://docs.dja
 By default all fields are saved and refreshed. 
 Use [update_fields](https://docs.djangoproject.com/en/2.1/ref/models/instances/#specifying-which-fields-to-save) to specify concrete fields to save and refresh.
 ```python
-instance = MyModel.objects.create(pk=1, field=1)
+from django.db.models import Value, F
+
+instance = MyModel(pk=1, field=Value(1))
+instance.save_returning()
+print(instance.field)
+# Output: 2 
+# if basic save() called: F('field') + Value(1)
+
 instance.field = F('field') + 1
 
 # Basic save method will not change field and you don't know, what value is in database
