@@ -47,11 +47,18 @@ class UpdateReturningMixin(object):
 
         self.model._insert_returning_cache = self._execute_sql(query, return_fields, using=using)
         if django.VERSION < (3,):
-            return self.model._insert_returning_cache.values_list(self.model._meta.pk.column, flat=True) \
-                if kwargs.get('return_id', False) else None
+            if not kwargs.get('return_id', False):
+                return None
+
+            inserted_ids = self.model._insert_returning_cache.values_list(self.model._meta.pk.column, flat=True)
+            if not inserted_ids:
+                return None
+
+            return list(inserted_ids) if len(inserted_ids) > 1 else inserted_ids[0]
         else:
             returning_fields = kwargs.get('returning_fields', None)
-            return self.model._insert_returning_cache.values_list(*(f.column for f in returning_fields)) \
+            columns = (f.column for f in returning_fields)
+            return self.model._insert_returning_cache.values_list(*columns) \
                 if returning_fields is not None else None
 
     _insert.alters_data = True
