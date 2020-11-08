@@ -95,7 +95,6 @@ class UpdateReturningModel(models.Model):
             setattr(manager.model, '_insert_returning', is_returning_save)
 
         res = super(UpdateReturningModel, self)._do_insert(manager, using, fields, returning_fields, raw)
-
         if is_returning_save:
             returning_cache = getattr(manager.model, '_insert_returning_cache', None)
 

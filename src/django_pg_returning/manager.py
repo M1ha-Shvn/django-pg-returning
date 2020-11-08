@@ -57,9 +57,15 @@ class UpdateReturningMixin(object):
             return list(inserted_ids) if len(inserted_ids) > 1 else inserted_ids[0]
         else:
             returning_fields = kwargs.get('returning_fields', None)
-            columns = (f.column for f in returning_fields)
-            return self.model._insert_returning_cache.values_list(*columns) \
-                if returning_fields is not None else None
+            if returning_fields is None:
+                return None
+
+            columns = [f.column for f in returning_fields]
+
+            # In django 3.0 single result is returned if single object is returned...
+            flat = django.VERSION < (3, 1) and len(objs) <= 1
+
+            return self.model._insert_returning_cache.values_list(*columns, flat=flat)
 
     _insert.alters_data = True
     _insert.queryset_only = False
