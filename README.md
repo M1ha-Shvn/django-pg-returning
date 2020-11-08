@@ -96,8 +96,8 @@ To limit fields returned, you can use standard
 [QuerySet.only()](https://docs.djangoproject.com/en/2.0/ref/models/querysets/#django.db.models.query.QuerySet.only) 
 and 
 [QuerySet.defer()](https://docs.djangoproject.com/en/2.0/ref/models/querysets/#defer) methods.  
-`create_returning` doesn't support this methods.  
-`bulk_create_returning` doesn't support this methods for django before 1.10.  
+`create_returning` doesn't support these methods.  
+`bulk_create_returning` doesn't support these methods for django before 1.10.  
 
 
 #### <a name="model_methods">Model methods</a>
