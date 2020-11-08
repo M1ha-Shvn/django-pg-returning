@@ -5,7 +5,8 @@ from unittest import skipIf
 
 import django
 from django.db import connection
-from django.db.models import Model, F
+from django.db.models import Model, F, Value
+from django.db.models.functions import Concat
 from django.db.models.query_utils import DeferredAttribute
 from django.test import TestCase
 
@@ -22,6 +23,34 @@ def _attr_is_deferred(instance, attname):  # type: (Model, str) -> bool
         return isinstance(instance.__class__.__dict__.get(attname), DeferredAttribute)
     else:
         return attname in instance.get_deferred_fields()
+
+
+def create_int_field_trigger():
+    """
+    Creates a trigger which replaces int_field value with 100500 if it is odd
+    :return: None
+    """
+    cursor = connection.cursor()
+    cursor.execute('''
+        CREATE OR REPLACE FUNCTION int_field_trigger()
+        RETURNS trigger AS
+        $BODY$
+        BEGIN
+           IF NEW.int_field % 2 = 1 THEN
+               NEW.int_field = 100500;
+           END IF;
+
+           RETURN NEW;
+        END;
+        $BODY$ LANGUAGE plpgsql;
+    ''')
+    cursor.execute('''
+        CREATE TRIGGER last_name_changes
+        BEFORE INSERT
+        ON tests_testmodel
+        FOR EACH ROW
+        EXECUTE PROCEDURE int_field_trigger();
+    ''')
 
 
 class UpdateReturningTest(TestCase):
@@ -167,27 +196,7 @@ class BulkCreateReturningTest(TestCase):
     fixtures = ['test_model']
 
     def setUp(self):
-        cursor = connection.cursor()
-        cursor.execute('''
-            CREATE OR REPLACE FUNCTION int_field_trigger()
-            RETURNS trigger AS
-            $BODY$
-            BEGIN
-               IF NEW.int_field % 2 = 1 THEN
-                   NEW.int_field = 100500;
-               END IF;
-             
-               RETURN NEW;
-            END;
-            $BODY$ LANGUAGE plpgsql;
-        ''')
-        cursor.execute('''
-            CREATE TRIGGER last_name_changes
-            BEFORE INSERT
-            ON tests_testmodel
-            FOR EACH ROW
-            EXECUTE PROCEDURE int_field_trigger();
-        ''')
+        create_int_field_trigger()
 
     def _test_result(self, create_objs, result, expected_count, replaced=True):
         expected_replaces = {item['name'] for item in create_objs if item['int_field'] % 2 == 1}
@@ -272,3 +281,22 @@ class BulkCreateReturningTest(TestCase):
         ]
         result = TestModel.objects.bulk_create([TestModel(**data) for data in create_objs])
         self._test_result(create_objs, result, 11, replaced=False)
+
+
+class CreateReturningTest(TestCase):
+    fixtures = ['test_model']
+
+    def setUp(self):
+        create_int_field_trigger()
+
+    def test_simple(self):
+        instance = TestModel.objects.create_returning(name='hello', int_field=1)
+
+        # returned data
+        self.assertEqual('hello', instance.name)
+        # self.assertEqual(100500, instance.int_field)
+
+        # Database data
+        instance.refresh_from_db()
+        self.assertEqual('hello', instance.name)
+        self.assertEqual(100500, instance.int_field)

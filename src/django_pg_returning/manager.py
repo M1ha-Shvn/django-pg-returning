@@ -47,12 +47,25 @@ class UpdateReturningMixin(object):
 
         self.model._insert_returning_cache = self._execute_sql(query, return_fields, using=using)
         if django.VERSION < (3,):
-            return self.model._insert_returning_cache.values_list(self.model._meta.pk.column, flat=True) \
-                if kwargs.get('return_id', False) else None
+            if not kwargs.get('return_id', False):
+                return None
+
+            inserted_ids = self.model._insert_returning_cache.values_list(self.model._meta.pk.column, flat=True)
+            if not inserted_ids:
+                return None
+
+            return list(inserted_ids) if len(inserted_ids) > 1 else inserted_ids[0]
         else:
             returning_fields = kwargs.get('returning_fields', None)
-            return self.model._insert_returning_cache.values_list(*(f.column for f in returning_fields)) \
-                if returning_fields is not None else None
+            if returning_fields is None:
+                return None
+
+            columns = [f.column for f in returning_fields]
+
+            # In django 3.0 single result is returned if single object is returned...
+            flat = django.VERSION < (3, 1) and len(objs) <= 1
+
+            return self.model._insert_returning_cache.values_list(*columns, flat=flat)
 
     _insert.alters_data = True
     _insert.queryset_only = False
@@ -130,6 +143,17 @@ class UpdateReturningMixin(object):
         query.clear_ordering(force_empty=True)
 
         return self._execute_sql(query, fields)
+
+    def create_returning(self, **kwargs):
+        """
+        Just copies native create method, replacing save(...) call to save_returning(...) call
+        :param kwargs: Parameters to create model with
+        :return: Model instance, saved to database
+        """
+        obj = self.model(**kwargs)
+        self._for_write = True
+        obj.save_returning(force_insert=True, using=self.db)
+        return obj
 
     def update_returning(self, **updates):
         # type: (**Dict[str, Any]) -> ReturningQuerySet
@@ -227,6 +251,10 @@ class UpdateReturningManager(models.Manager):
     def bulk_create_returning(self, objs, batch_size=None):
         # In early django automatic fetching QuerySet public methods fails
         return self.get_queryset().bulk_create_returning(objs, batch_size=batch_size)
+
+    def create_returning(self, **kwargs):
+        # In early django automatic fetching QuerySet public methods fails
+        return self.get_queryset().create_returning(**kwargs)
 
     def update_returning(self, **updates):
         # In early django automatic fetching QuerySet public methods fails

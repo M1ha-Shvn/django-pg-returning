@@ -13,7 +13,7 @@ class UpdateReturningModel(models.Model):
 
     def __init__(self, *args, **kwargs):
         super(UpdateReturningModel, self).__init__(*args, **kwargs)
-        self._returning_update = False
+        self._returning_save = False
 
     def _do_update_and_refresh(self, qs, values, update_fields):
         # type: (UpdateReturningMixin, List[tuple], Optional[Iterable[str]]) -> int
@@ -25,7 +25,7 @@ class UpdateReturningModel(models.Model):
         :param update_fields: Fields to update
         :return: Number of records updated
         """
-        self._returning_update = False
+        self._returning_save = False
 
         # Return only fields we need to update
         # This method should be supported by any django QuerySet
@@ -49,7 +49,7 @@ class UpdateReturningModel(models.Model):
         """
         # If object has been saved in cache using pickle before library update
         # It can cause getting attribute fail
-        is_returning_update = getattr(self, '_returning_update', False)
+        is_returning_save = getattr(self, '_returning_save', False)
 
         filtered = base_qs.filter(pk=pk_val)
         if not values:
@@ -68,7 +68,7 @@ class UpdateReturningModel(models.Model):
                 # successfully (a row is matched and updated). In order to
                 # distinguish these two cases, the object's existence in the
                 # database is again checked for if the UPDATE query returns 0.
-                if is_returning_update:
+                if is_returning_save:
                     updated_count = self._do_update_and_refresh(filtered, values, update_fields)
                 else:
                     updated_count = filtered._update(values)
@@ -76,10 +76,34 @@ class UpdateReturningModel(models.Model):
             else:
                 return False
 
-        if is_returning_update:
+        if is_returning_save:
             return self._do_update_and_refresh(filtered, values, update_fields) > 0
         else:
             return filtered._update(values) > 0
+
+    def _do_insert(self, manager, using, fields, returning_fields, raw):
+        # NOTE returning_fields was renamed from update_pk in django 3.0.
+        #  But function signature has not changed, so it can be used in such a way.
+
+        # If object has been saved in cache using pickle before library update
+        # It can cause getting attribute fail
+        is_returning_save = getattr(self, '_returning_save', False)
+
+        # _do_insert is called with cls._base_manager, which has no returning features
+        if is_returning_save:
+            manager = self.__class__.objects
+            setattr(manager.model, '_insert_returning', is_returning_save)
+
+        res = super(UpdateReturningModel, self)._do_insert(manager, using, fields, returning_fields, raw)
+        if is_returning_save:
+            returning_cache = getattr(manager.model, '_insert_returning_cache', None)
+
+            if returning_cache and returning_cache.count():
+                for attr, val in returning_cache.values()[0].items():
+                    setattr(self, attr, val)
+
+        self._returning_save = False
+        return res
 
     def save_returning(self, *args, **kwargs):
         """
@@ -89,5 +113,5 @@ class UpdateReturningModel(models.Model):
         :param kwargs: Arguments to pass to basic save() method
         :return: Updated instance
         """
-        self._returning_update = True
+        self._returning_save = True
         return super(UpdateReturningModel, self).save(*args, **kwargs)
