@@ -13,7 +13,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='django-pg-returning',
-    version='1.3.0',
+    version='1.3.1',
     packages=['django_pg_returning'],
     package_dir={'': 'src'},
     url='https://github.com/M1hacka/django-pg-returning',
@@ -23,5 +23,5 @@ setup(
     description='A small library implementing PostgreSQL ability to return rows in DML statements for Django',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    requires=requires
+    install_requires=requires
 )
