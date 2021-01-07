@@ -23,5 +23,5 @@ setup(
     description='A small library implementing PostgreSQL ability to return rows in DML statements for Django',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    requires=requires
+    install_requires=requires
 )
