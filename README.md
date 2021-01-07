@@ -8,10 +8,8 @@ A small library implementing PostgreSQL ability to return rows in DML statements
 * django >= 1.8  
   Previous versions may also work, but are not tested with CI.   
   bulk_create_returning method doesn't support .only() and .defer() filters for django before 1.10.
-* pytz
-* six
-* typing
-* psycopg2
+* psycopg2-binary
+* typing for python < 3.5
 * PostgreSQL 9.4+   
   Previous versions may also work, but are not tested with CI.  
 
