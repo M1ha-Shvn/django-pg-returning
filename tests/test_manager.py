@@ -5,8 +5,7 @@ from unittest import skipIf
 
 import django
 from django.db import connection
-from django.db.models import Model, F, Value
-from django.db.models.functions import Concat
+from django.db.models import Model, F
 from django.db.models.query_utils import DeferredAttribute
 from django.test import TestCase
 
