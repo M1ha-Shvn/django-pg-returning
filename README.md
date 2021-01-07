@@ -3,16 +3,17 @@ A small library implementing PostgreSQL ability to return rows in DML statements
 [Link to PostgreSQL docs](https://www.postgresql.org/docs/10/static/sql-update.html)
 
 ## <a name="requirements">Requirements</a>
-* Python 2.7 or Python 3.5+
+* Python Python 3.5+
+ Previous versions may also work, but are not tested with CI  
 * django >= 1.8  
-  Previous versions may also work, but haven't been tested.  
+  Previous versions may also work, but are not tested with CI.   
   bulk_create_returning method doesn't support .only() and .defer() filters for django before 1.10.
 * pytz
 * six
 * typing
 * psycopg2
 * PostgreSQL 9.4+   
-  Previous versions may also work, but haven't been tested.  
+  Previous versions may also work, but are not tested with CI.  
 
 ## <a name="installation">Installation</a>
 Install via pip:  
