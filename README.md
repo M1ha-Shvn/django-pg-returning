@@ -1,3 +1,5 @@
+[![Python unit tests](https://github.com/M1ha-Shvn/django-pg-returning/actions/workflows/python-tests.yml/badge.svg)](https://github.com/M1ha-Shvn/django-pg-returning/actions/workflows/python-tests.yml)  [![Upload Python Package](https://github.com/M1ha-Shvn/django-pg-returning/actions/workflows/python-publish.yml/badge.svg)](https://github.com/M1ha-Shvn/django-pg-returning/actions/workflows/python-publish.yml) [![Downloads](https://pepy.tech/badge/django-pg-returning/month)](https://pepy.tech/project/django-pg-returning)
+
 # django-pg-returning
 A small library implementing PostgreSQL ability to return rows in DML statements for Django.  
 [Link to PostgreSQL docs](https://www.postgresql.org/docs/10/static/sql-update.html)
