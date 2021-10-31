@@ -5,7 +5,7 @@ A small library implementing PostgreSQL ability to return rows in DML statements
 [Link to PostgreSQL docs](https://www.postgresql.org/docs/10/static/sql-update.html)
 
 ## <a name="requirements">Requirements</a>
-* Python Python 3.5+
+* Python Python 3.6+
  Previous versions may also work, but are not tested with CI  
 * django >= 1.8  
   Previous versions may also work, but are not tested with CI.   
