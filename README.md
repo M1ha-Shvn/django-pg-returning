@@ -179,3 +179,6 @@ print(result.values_list('field', flat=True))
 print(result.values_list('field', 'id', named=True))
 # Output: [Row(field=1, id=1), Row(field=2, id=2)]
 ```
+
+## Thanks for support
+![JetBrains](https://opt-819215.ssl.1c-bitrix-cdn.ru/upload/resize_cache/iblock/285/198_208_140cd750bba9870f18aada2478b24840a/2854e262418789c194fcaa4427f1db05.png "JetBrains")
