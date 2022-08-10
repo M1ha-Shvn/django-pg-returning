@@ -114,4 +114,4 @@ class UpdateReturningModel(models.Model):
         :return: Updated instance
         """
         self._returning_save = True
-        return super(UpdateReturningModel, self).save(*args, **kwargs)
+        return self.save(*args, **kwargs)
