@@ -79,7 +79,10 @@ class UpdateReturningMixin(object):
         fields = {}
 
         if not ignore_deferred:
-            self.query.deferred_to_data(fields, self._get_loaded_field_cb)
+            if django.VERSION < (4, 2):
+                self.query.deferred_to_data(fields, self._get_loaded_field_cb)
+            else:
+                self.query.get_select_mask()
 
         # No .only() or .defer() operations
         if not fields:
@@ -140,7 +143,10 @@ class UpdateReturningMixin(object):
         query._annotations = None
         query.select_for_update = False
         query.select_related = False
-        query.clear_ordering(force_empty=True)
+        if django.VERSION < (4, 2):
+            query.clear_ordering(force_empty=True)
+        else:
+            query.clear_ordering(force=True)
 
         return self._execute_sql(query, fields)
 
