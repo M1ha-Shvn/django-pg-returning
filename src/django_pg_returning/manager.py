@@ -4,7 +4,8 @@ import django
 from django.db import transaction, models
 from django.db.models import sql, Field, QuerySet
 
-from .compatibility import chain_query, get_model_fields
+from .compatibility import chain_query, get_model_fields, clear_query_ordering, prepare_insert_query_kwargs, \
+    get_not_deferred_fields
 from .queryset import ReturningQuerySet
 
 # DEPRECATED class package changed in django 1.11
@@ -31,55 +32,47 @@ class UpdateReturningMixin(object):
             return QuerySet._insert(self, objs, fields, **kwargs)
 
         # Returns attname, not column.
-        # Before django 1.10 pk fields hasn't been returned from postgres.
-        # In this case, I can't match bulk_create results and return values by primary key.
-        # So I select all data from returned results
-        return_fields = self._get_fields(ignore_deferred=(django.VERSION < (1, 10)))
+        return_fields = self._get_fields()
         assert len(return_fields) == 1 and list(return_fields.keys())[0] == self.model, \
             "You can't fetch relative model fields with returning operation"
 
         self._for_write = True
         using = kwargs.get('using', None) or self.db
 
-        query_kwargs = {} if django.VERSION < (2, 2) else {'ignore_conflicts': kwargs.get('ignore_conflicts')}
+        query_kwargs = prepare_insert_query_kwargs(kwargs)
         query = sql.InsertQuery(self.model, **query_kwargs)
         query.insert_values(fields, objs, raw=kwargs.get('raw'))
 
         self.model._insert_returning_cache = self._execute_sql(query, return_fields, using=using)
-        if django.VERSION < (3,):
-            if not kwargs.get('return_id', False):
-                return None
 
+        if kwargs.get('return_id', False):
+            # Django before 3.0
             inserted_ids = self.model._insert_returning_cache.values_list(self.model._meta.pk.column, flat=True)
             if not inserted_ids:
                 return None
 
             return list(inserted_ids) if len(inserted_ids) > 1 else inserted_ids[0]
-        else:
-            returning_fields = kwargs.get('returning_fields', None)
-            if returning_fields is None:
-                return None
 
-            columns = [f.column for f in returning_fields]
+        elif kwargs.get('returning_fields', None):
+            # Django 3.0+
+            columns = [f.column for f in kwargs['returning_fields']]
 
             # In django 3.0 single result is returned if single object is returned...
             flat = django.VERSION < (3, 1) and len(objs) <= 1
 
             return self.model._insert_returning_cache.values_list(*columns, flat=flat)
 
+        return None
+
     _insert.alters_data = True
     _insert.queryset_only = False
 
-    def _get_fields(self, ignore_deferred=False):  # type: (bool) -> Dict[models.Model: List[models.Field]]
+    def _get_fields(self):  # type: () -> Dict[models.Model: List[models.Field]]
         """
         Gets a dictionary of fields for each model, selected by .only() and .defer() methods
-        :param ignore_deferred: If set, ignores .only() and .defer() filters
         :return: A dictionary with model as key, fields list as value
         """
-        fields = {}
-
-        if not ignore_deferred:
-            self.query.deferred_to_data(fields, self._get_loaded_field_cb)
+        fields = get_not_deferred_fields(self)
 
         # No .only() or .defer() operations
         if not fields:
@@ -140,7 +133,7 @@ class UpdateReturningMixin(object):
         query._annotations = None
         query.select_for_update = False
         query.select_related = False
-        query.clear_ordering(force_empty=True)
+        clear_query_ordering(query)
 
         return self._execute_sql(query, fields)
 

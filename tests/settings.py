@@ -28,3 +28,5 @@ INSTALLED_APPS = [
     "src",
     "tests"
 ]
+
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
